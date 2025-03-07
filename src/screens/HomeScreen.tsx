@@ -1,81 +1,74 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
-import { Props } from '../navigation/props'
+import { Props } from '../navigation/props';
 
 interface ProductItem {
     productID: number;
     name: string;
     price: number;
-    quantity: number;
 }
 
 const HomeScreen: React.FC<Props> = ({ navigation }) => {
+    const [ cart, setCart ] = useState<{ [ key: number ]: number }>( {} ); // Cart containing the held items
 
-    const [ cart, setCart ] = useState< { [ key: number ]: number } >( {} );    //user's cart containing items
-
-    const addToCart = ( productId: number ) => {    //takes the productID and addes it to the cart with its quantity
-        setCart( ( prevCart ) => ( {
+    const addToCart = ( productId: number ) => {
+        setCart(( prevCart ) => ({
             ...prevCart,
             [ productId ]: ( prevCart[ productId ] || 0 ) + 1
-        } ) );
+        }));
     };
 
-    const removeFromCart = ( productId: number ) => {   //subtracts quantity of item in cart with productID by 1. 
-        setCart( ( prevCart ) => {
+    const deleteFromCart = ( productId: number ) => {
+        setCart(( prevCart ) => {
             const updatedCart = { ...prevCart };
-            if ( updatedCart[ productId ] > 1 ) {
-                updatedCart[ productId ] -= 1;
-            } else {    // if the quantity is < 1, the item is deleted from the cart
-                delete updatedCart[ productId ];
-            }
+            delete updatedCart[ productId ];
             return updatedCart;
-        } );
+        });
     };
 
     const products = [
-        { productID: 1, name: 'Product A', price: 10, quantity: 5 },
-        { productID: 2, name: 'Product B', price: 15, quantity: 10 },
-        { productID: 3, name: 'Product C', price: 20, quantity: 3 },
+        { productID: 1, name: 'Pneumonoultramicroscopicsilicovolcanoconiosis', price: 150 },
+        { productID: 2, name: 'Supercalifragilisticexpialidocious', price: 78.50 },
+        { productID: 3, name: 'Dog', price: 9.99 },
+        { productID: 5, name: 'Defenestrate', price: 20.75 },
+        { productID: 6, name: 'Pogchamp', price: 12 },
+        { productID: 7, name: 'Sus', price: 2.25 },
     ];
 
-    const renderProducts = ( { item }: { item: ProductItem } ) => {
+    const renderProducts = ({ item }: { item: ProductItem }) => {
+        const inCart = cart[ item.productID ] || 0;
 
-        const inCart = cart[ item.productID ] || 0; //counts the number of items in the cart
-        
-        const remainingStock = item.quantity - inCart;  //counts the remianing stock of an item
-    
+        const formattedPrice = item.price.toFixed( 2 ); // Format price to two decimal places
+
         return (
             <View style = { styles.productContainer }>
-                <Text style = { styles.productText }>{ `${ item.name } - Php ${ item.price } - Stock: ${ remainingStock }` }</Text>
-                
-                { inCart > 0 ? (
-                    <View style = { styles.quantityContainer }>
-                        <TouchableOpacity style = { styles.quantityButton } onPress = { () => removeFromCart( item.productID ) }>
-                            <Text style = { styles.buttonText }>-</Text>
-                        </TouchableOpacity>
-                        
-                        <Text style = { styles.quantityText }>{ inCart }</Text>
-    
-                        <TouchableOpacity 
-                            style = { [ styles.quantityButton, remainingStock === 0 && styles.disabledButton ] } 
-                            onPress = { () => addToCart( item.productID ) }
-                            disabled = { remainingStock === 0 }
-                        >
-                            <Text style = { styles.buttonText }>+</Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : (
-                    <TouchableOpacity style = { styles.addButton } onPress = { () => addToCart( item.productID ) }>
-                        <Text style = { styles.buttonText }>Add to Cart</Text>
-                    </TouchableOpacity>
-                ) }
+                <View style = { styles.itemDetails }>
+                    <Text style = { styles.itemName }>{ item.name }</Text>
+                    <Text style = { styles.itemPrice }>Php { formattedPrice }</Text>
+                </View>
+
+                <TouchableOpacity
+                    style = {[
+                        styles.actionButton,
+                        inCart > 0 ? styles.removeButton : styles.addButton
+                    ]}
+                    onPress = { () =>
+                        inCart > 0
+                            ? deleteFromCart( item.productID )
+                            : addToCart( item.productID )
+                    }
+                >
+                    <Text style = { styles.buttonText }>
+                        { inCart > 0 ? 'Remove from Cart' : 'Add to Cart' }
+                    </Text>
+                </TouchableOpacity>
             </View>
         );
     };
 
     return (
         <View style = { styles.container }>
-            <Text style = { styles.headerText }>Home Screen</Text>
+            <Text style = { styles.headerText }>Welcome to the Word Shop</Text>
 
             <FlatList
                 data = { products }
@@ -84,7 +77,10 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             />
 
             <View style = { styles.buttonContainer }>
-                <TouchableOpacity style = { styles.button } onPress = { () => navigation.navigate( 'Cart' ) }>
+                <TouchableOpacity
+                    style = { styles.cartButton }
+                    onPress = { () => navigation.navigate( 'Cart', { cart, products }) } // Passes the cart onto the cart screen
+                >
                     <Text style = { styles.buttonText }>Cart</Text>
                 </TouchableOpacity>
             </View>
@@ -116,21 +112,36 @@ const styles = StyleSheet.create({
         marginVertical: 5,
         borderRadius: 10,
     },
-    productText: {
+    itemDetails: {
+        flex: 1,
+    },
+    itemName: {
         fontSize: 16,
+        fontWeight: 'bold',
         color: '#333',
     },
-    addButton: {
-        backgroundColor: "#F7B733",
+    itemPrice: {
+        fontSize: 14,
+        color: '#666',
+    },
+    actionButton: {
         paddingVertical: 10,
         paddingHorizontal: 15,
         borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    addButton: {
+        backgroundColor: "#F7B733", // Yellow for "Add to Cart"
+    },
+    removeButton: {
+        backgroundColor: '#f44336', // Red for "Remove from Cart"
     },
     buttonContainer: {
         alignItems: 'center',
         marginTop: 20,
     },
-    button: {
+    cartButton: {
         backgroundColor: "#F7B733",
         minWidth: "50%",
         paddingVertical: 15,
@@ -139,27 +150,7 @@ const styles = StyleSheet.create({
     },
     buttonText: {
         color: "#fff",
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: "bold",
     },
-    quantityContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    quantityButton: {
-        backgroundColor: "#F7B733",
-        paddingVertical: 5,
-        paddingHorizontal: 10,
-        borderRadius: 5,
-        marginHorizontal: 5,
-    },
-    quantityText: {
-        fontSize: 18,
-        fontWeight: "bold",
-        color: "#333",
-    },
-    disabledButton: {
-        backgroundColor: "#ccc",
-    },
-    
 });
